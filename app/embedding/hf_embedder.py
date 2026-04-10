@@ -24,32 +24,33 @@ class HFEmbedder:
 
         all_embeddings = []
 
-        # 🔥 Batch for stability
-        batch_size = 5
-
-        for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            logger.debug(f"Processing batch {i // batch_size + 1}")
+        for i, text in enumerate(texts):
+            logger.debug(f"Embedding chunk {i + 1}/{len(texts)}")
 
             try:
                 result = self.client.feature_extraction(
-                    batch,
+                    text,
                     model=self.model,
                 )
 
-                # HF returns:
-                # - List[List[float]] for batch
-                # - List[float] for single input
+                # ✅ Normalize output
+                if hasattr(result, "tolist"):  # numpy array
+                    embedding = result.tolist()
 
-                if isinstance(batch, list) and isinstance(result[0], list):
-                    batch_embeddings = result
+                elif isinstance(result, list):
+                    embedding = result
+
                 else:
-                    batch_embeddings = [result]
+                    raise ValueError(f"Unexpected embedding format: {type(result)}")
 
-                all_embeddings.extend(batch_embeddings)
+                # ✅ Validate final format
+                if not isinstance(embedding, list):
+                    raise ValueError("Embedding is not a list after conversion")
+
+                all_embeddings.append(embedding)
 
             except Exception as e:
-                logger.error(f"Embedding error: {str(e)}")
+                logger.error(f"Embedding failed for chunk {i}: {e}")
                 raise
 
         logger.info("Embedding generation complete")
