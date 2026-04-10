@@ -1,0 +1,15 @@
+pandas
+beautifulsoup4
+lxml
+pypdf
+requests
+python-dotenv
+loguru
+
+# Dev
+black
+flake8
+isort
+pre-commit
+
+pymupdf4llm
