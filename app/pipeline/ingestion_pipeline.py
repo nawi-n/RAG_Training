@@ -91,6 +91,13 @@ class IngestionPipeline:
             chunks = [item[0] for item in cached_data]
             embeddings = [item[1] for item in cached_data]
 
+            if not chunks or not embeddings:
+                logger.warning(
+                    f"Cached content for {file_path} is empty; "
+                    "skipping vector store upsert"
+                )
+                return cached_data
+
             logger.info("Pushing cached data to Chroma")
 
             ids = self._generate_ids(file_path, len(chunks))
@@ -114,7 +121,21 @@ class IngestionPipeline:
         chunks = chunk_text(text)
         logger.debug(f"Chunks created: {len(chunks)}")
 
+        if not chunks:
+            logger.warning(
+                f"No chunks generated for {file_path}; "
+                "returning without vector store write"
+            )
+            return []
+
         embeddings = self.embedder.embed(chunks)
+
+        if not embeddings:
+            logger.warning(
+                f"No embeddings generated for {file_path}; "
+                "returning without vector store write"
+            )
+            return []
 
         ids = self._generate_ids(file_path, len(chunks))
 

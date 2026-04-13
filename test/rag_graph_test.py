@@ -1,4 +1,9 @@
-from app.generation.rag_graph import build_graph
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.generation.rag_graph import build_graph  # noqa: E402
 
 graph = build_graph()
 

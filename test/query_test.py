@@ -1,5 +1,10 @@
-from app.logger import get_logger
-from app.retrieval.query_engine import QueryEngine
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.logger import get_logger  # noqa: E402
+from app.retrieval.query_engine import QueryEngine  # noqa: E402
 
 logger = get_logger()
 

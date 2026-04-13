@@ -10,3 +10,7 @@ What is implemented:
 - Two generation paths: a simple RAG chain and a LangGraph-based graph (ChatGoogleGenerativeAI `gemini-2.5-flash-lite`, LangGraph StateGraph)
 - Basic interactive test scripts for querying the system (Python CLI scripts in `test/`)
 - Pre-Commits
+
+Quick run commands:
+- `uv run test/rag_graph_test.py` for sync LangGraph flow
+- `uv run test/rag_graph_async_test.py` for async LangGraph flow (`ainvoke`)
