@@ -1,60 +1,76 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
-from langgraph.graph import StateGraph
+from langgraph.graph import END, StateGraph
 
+from app.agent.agent import build_agent
 from app.generation.llm import get_llm
-from app.retrieval.reranker import Reranker
-from app.retrieval.retriever import Retriever
 
 
 class RAGState(TypedDict):
     query: str
-    docs: List[str]
-    compressed_docs: List[str]
     answer: str
+    route: str
 
 
-retriever = Retriever()
-reranker = Reranker()
 llm = get_llm()
+agent_executor = build_agent()
 
 
-def retrieve(state: RAGState):
-    docs = retriever.retrieve(state["query"])
-    return {"docs": docs}
-
-
-def rerank(state: RAGState):
-    compressed = reranker.rerank(state["query"], state["docs"])
-    return {"compressed_docs": compressed}
-
-
-def generate(state: RAGState):
-    context = "\n\n".join(state["compressed_docs"])
-
+# 🔹 1. ROUTER NODE
+def router(state: RAGState):
     prompt = f"""
-Use the context below to answer:
+    Decide routing:
 
-{context}
+    Query: {state['query']}
 
-Question: {state['query']}
-"""
+    Return only:
+    - generic
+    - agent
+    """
+    decision = llm.invoke(prompt).content.strip().lower()
 
-    response = llm.invoke(prompt)
+    return {"route": "generic" if "generic" in decision else "agent"}
 
+
+# 🔹 2. GENERIC RESPONSE NODE
+def respond_generic(state: RAGState):
+    response = llm.invoke(state["query"])
     return {"answer": response.content}
 
 
+# 🔹 3. AGENT NODE (🔥 CORE)
+def call_agent(state: RAGState):
+    result = agent_executor.invoke(
+        {"messages": [{"role": "user", "content": state["query"]}]}
+    )
+
+    return {"answer": result["messages"][-1].content}
+
+
+def extract_answer(state):
+    return {"answer": state.get("answer", "No answer")}
+
+
+# 🔹 BUILD GRAPH
 def build_graph():
     graph = StateGraph(RAGState)
 
-    graph.add_node("retrieve", retrieve)
-    graph.add_node("rerank", rerank)
-    graph.add_node("generate", generate)
+    graph.add_node("router", router)
+    graph.add_node("generic", respond_generic)
+    graph.add_node("agent", call_agent)
 
-    graph.set_entry_point("retrieve")
+    graph.set_entry_point("router")
 
-    graph.add_edge("retrieve", "rerank")
-    graph.add_edge("rerank", "generate")
+    graph.add_conditional_edges(
+        "router",
+        lambda state: state["route"],
+        {
+            "generic": "generic",
+            "agent": "agent",
+        },
+    )
+
+    graph.add_edge("generic", END)
+    graph.add_edge("agent", END)
 
     return graph.compile()

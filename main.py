@@ -9,7 +9,7 @@ logger = get_logger()
 def main():
     pipeline = IngestionPipeline()
 
-    file_path = "data/sample.pdf"  # change as needed
+    file_path = "data/TCS_annual-report-2024-2025 Splitted.pdf"  # change as needed
 
     results = pipeline.run(file_path)
 
